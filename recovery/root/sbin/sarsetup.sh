@@ -39,42 +39,40 @@ F_LOG "System path: $syspath"
 mkdir "/s" >> $LOG 2>&1
 mount -t ext4 -o ro "$syspath" "/s" >> $LOG 2>&1 || F_ELOG "mounting /s to $syspath failed"
 
+# detect path to system and vendor for SAR and non-SAR
+system_path="/s"
+is_sar=$(getprop ro.twrp.sar)
+if [ $is_sar == "true" ]; then
+  system_path="/s/system"
+fi
+
 # copy entire /system/vendor to /vendor. (why not?)
 F_LOG "Copying entire /syste/vendor to /vendor ..."
 rm -Rf "/vendor" >> $LOG 2>&1
-cp -Rf "/s/vendor" "/vendor" >> $LOG 2>&1
-cp -Rf "/s/vendor/etc/vintf/manifest.xml" "/vendor/" >> $LOG 2>&1
-cp -Rf "/s/vendor/etc/vintf/compatibility_matrix.xml" "/vendor/" >> $LOG 2>&1
+cp -Rf "${system_path}/vendor" "/vendor" >> $LOG 2>&1
+cp -Rf "${system_path}/vendor/etc/vintf/manifest.xml" "/vendor/" >> $LOG 2>&1
+cp -Rf "${system_path}/vendor/etc/vintf/compatibility_matrix.xml" "/vendor/" >> $LOG 2>&1
 
 # copy additional files to /vendor (1) (just in case if something missed)
 F_LOG "Copying additional files from /system/bin to /vendor/bin ..."
 mkdir -p "/vendor/bin/hw" >> $LOG 2>&1
-cp -Rf "/s/bin/qseecomd" "/vendor/bin/" >> $LOG 2>&1
-cp -Rf "/s/bin/hw/android.hardware.keymaster@3.0-service" "/vendor/bin/hw/" >> $LOG 2>&1
+cp -Rf "${system_path}/bin/qseecomd" "/vendor/bin/" >> $LOG 2>&1
+cp -Rf "${system_path}/bin/hw/android.hardware.keymaster@3.0-service" "/vendor/bin/hw/" >> $LOG 2>&1
 
 # copy additional files to /vendor (2) (just in case if something missed)
 F_LOG "Copying additional files from /system/lib to /vendor/lib ..."
 mkdir -p "/vendor/lib/hw" >> $LOG 2>&1
-cp -Rf "/s/lib/libdiag.so" "/vendor/lib/" >> $LOG 2>&1
-cp -Rf "/s/lib/libdrmdiag.so" "/vendor/lib/" >> $LOG 2>&1
-cp -Rf "/s/lib/libdrmfs.so" "/vendor/lib/" >> $LOG 2>&1
-cp -Rf "/s/lib/libdrmtime.so" "/vendor/lib/" >> $LOG 2>&1
-cp -Rf "/s/lib/libkeymaster3device.so" "/vendor/lib/" >> $LOG 2>&1
-cp -Rf "/s/lib/liboemcrypto.so" "/vendor/lib/" >> $LOG 2>&1
-cp -Rf "/s/lib/libQSEEComAPI.so" "/vendor/lib/" >> $LOG 2>&1
-cp -Rf "/s/lib/librpmb.so" "/vendor/lib/" >> $LOG 2>&1
-cp -Rf "/s/lib/libssd.so" "/vendor/lib/" >> $LOG 2>&1
-cp -Rf "/s/lib/hw/keystore.msm8974.so" "/vendor/lib/hw/" >> $LOG 2>&1
-cp -Rf "/s/lib/hw/android.hardware.keymaster@3.0-impl.so" "/vendor/lib/hw/" >> $LOG 2>&1
-
-# copy files from /system to /sbin
-F_LOG "Copying files from /system to /sbin ..."
-cp -Rf "/s/bin/hwservicemanager" "/sbin/" >> $LOG 2>&1
-cp -Rf "/s/bin/servicemanager" "/sbin/" >> $LOG 2>&1
-cp -Rf "/s/lib/libandroid_runtime.so" "/sbin/" >> $LOG 2>&1
-cp -Rf "/s/lib/libhidltransport.so" "/sbin/" >> $LOG 2>&1
-cp -Rf "/s/lib/libhidlbase.so" "/sbin/" >> $LOG 2>&1
-cp -Rf "/s/lib/libhwbinder.so" "/sbin/" >> $LOG 2>&1
+cp -Rf "${system_path}/lib/libdiag.so" "/vendor/lib/" >> $LOG 2>&1
+cp -Rf "${system_path}/lib/libdrmdiag.so" "/vendor/lib/" >> $LOG 2>&1
+cp -Rf "${system_path}/lib/libdrmfs.so" "/vendor/lib/" >> $LOG 2>&1
+cp -Rf "${system_path}/lib/libdrmtime.so" "/vendor/lib/" >> $LOG 2>&1
+cp -Rf "${system_path}/lib/libkeymaster3device.so" "/vendor/lib/" >> $LOG 2>&1
+cp -Rf "${system_path}/lib/liboemcrypto.so" "/vendor/lib/" >> $LOG 2>&1
+cp -Rf "${system_path}/lib/libQSEEComAPI.so" "/vendor/lib/" >> $LOG 2>&1
+cp -Rf "${system_path}/lib/librpmb.so" "/vendor/lib/" >> $LOG 2>&1
+cp -Rf "${system_path}/lib/libssd.so" "/vendor/lib/" >> $LOG 2>&1
+cp -Rf "${system_path}/lib/hw/keystore.msm8974.so" "/vendor/lib/hw/" >> $LOG 2>&1
+cp -Rf "${system_path}/lib/hw/android.hardware.keymaster@3.0-impl.so" "/vendor/lib/hw/" >> $LOG 2>&1
 
 # copy files from /vendor to /sbin
 F_LOG "Copying files from /vendor to /sbin ..."
@@ -94,12 +92,6 @@ cp -Rf "/vendor/bin/hw/android.hardware.keymaster@3.0-service" "/sbin/" >> $LOG 
 
 # relink some binaries in /sbin
 relink "/sbin/qseecomd" >> $LOG 2>&1
-relink "/sbin/hwservicemanager" >> $LOG 2>&1
-relink "/sibn/servicemanager" >> $LOG 2>&1
-relink "/sbin/libandroid_runtime.so" >> $LOG 2>&1
-relink "/sbin/libhidltransport.so" >> $LOG 2>&1
-relink "/sbin/libhidlbase.so" >> $LOG 2>&1
-relink "/sbin/libhwbinder.so" >> $LOG 2>&1
 
 # unmount system
 umount "/s" >> $LOG 2>&1 || F_ELOG "unmounting /s failed"

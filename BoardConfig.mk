@@ -60,6 +60,7 @@ TW_EXCLUDE_SUPERSU := true
 TW_EXCLUDE_TWRPAPP := true
 TW_INCLUDE_REPACKTOOLS := true
 TW_INCLUDE_RESETPROP := true
+TW_INCLUDE_LIBRESETPROP := true
 TW_NO_USB_STORAGE := true
 TW_USE_TOOLBOX := true
 
@@ -78,6 +79,8 @@ TW_CRYPTO_USE_SYSTEM_VOLD := qseecomd hwservicemanager servicemanager keymaster-
 TW_CRYPTO_SYSTEM_VOLD_MOUNT := firmware persist
 
 # TWRP debug flags
-TW_CRYPTO_SYSTEM_VOLD_DEBUG := true
-TWRP_INCLUDE_LOGCAT := true
-TARGET_USES_LOGD := true
+ifeq ($(TARGET_BUILD_VARIANT),eng)
+  TW_CRYPTO_SYSTEM_VOLD_DEBUG := true
+  TWRP_INCLUDE_LOGCAT := true
+  TARGET_USES_LOGD := true
+endif
