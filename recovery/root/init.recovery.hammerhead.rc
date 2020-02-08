@@ -6,7 +6,6 @@ on init
     chown system system /dev/ion
 
     setprop ro.board.platform msm8974
-    start sbinprepare
 
 on fs
     wait /dev/block/platform/${ro.boot.bootdevice}
@@ -22,10 +21,15 @@ on property:init.svc.sbinhwservicemanager=running && property:hwservicemanager.r
     start sbinservicemanager
     start sbinkeymaster-3-0
 
-on property:vold_decrypt.symlinked_vendor=1
+on property:vold_decrypt.symlinked_vendor=1 && property:ro.twrp.sar=false
     symlink /system/vendor/etc /vendor/etc
     symlink /system/vendor/etc/vintf/manifest.xml /vendor/manifest.xml
     symlink /system/vendor/etc/vintf/compatibility_matrix.xml /vendor/compatibility_matrix.xml
+
+on property:vold_decrypt.symlinked_vendor=1 && property:ro.twrp.sar=true
+    symlink /system_root/system/vendor/etc /vendor/etc
+    symlink /system_root/system/vendor/etc/vintf/manifest.xml /vendor/manifest.xml
+    symlink /system_root/system/vendor/etc/vintf/compatibility_matrix.xml /vendor/compatibility_matrix.xml
 
 on property:ro.crypto.fs_crypto_blkdev=*
     setprop crypto.ready 0
@@ -33,13 +37,6 @@ on property:ro.crypto.fs_crypto_blkdev=*
     stop sbinhwservicemanager
     stop sbinservicemanager
     stop sbinkeymaster-3-0
-
-service sbinprepare /sbin/prepare
-    user root
-    group root
-    disabled
-    oneshot
-    seclabel u:r:recovery:s0
 
 service sbinqseecomd /sbin/qseecomd
     user root
