@@ -26,14 +26,11 @@ relink()
 
 F_LOG "Started $0"
 
-# search system
-syspathsoc="/dev/block/platform/msm_sdcc.1/by-name/system"
-syspath=undefined
-while [ ! -e "$syspath" ];do
-    [ -e "$syspathsoc" ] && syspath="$syspathsoc"
-    [ "$syspath" == "undefined" ] && F_LOG "sleeping a bit as syspath is not there yet.." && sleep 1
+# waiting for system
+syspath="/dev/block/platform/msm_sdcc.1/by-name/system"
+while [ ! -e "$syspath" ]; do
+    F_LOG "sleeping a bit as syspath is not there yet.." && sleep 5
 done
-F_LOG "System path: $syspath"
 
 # mount system
 mkdir "/s" >> $LOG 2>&1

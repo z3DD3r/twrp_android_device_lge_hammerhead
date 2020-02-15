@@ -12,14 +12,10 @@ on fs
     symlink /dev/block/platform/${ro.boot.bootdevice} /dev/block/bootdevice
 
 on property:crypto.ready=1
-   start sbinhwservicemanager
-
-on property:ro.crypto.state=encrypted && property:crypto.ready=1
     start sbinqseecomd
 
-on property:init.svc.sbinhwservicemanager=running && property:hwservicemanager.ready=true
-    start sbinservicemanager
-    start sbinkeymaster-3-0
+on property:crypto.ready=0
+    stop sbinqseecomd
 
 on property:vold_decrypt.symlinked_vendor=1 && property:ro.twrp.sar=false
     symlink /system/vendor/etc /vendor/etc
@@ -33,10 +29,6 @@ on property:vold_decrypt.symlinked_vendor=1 && property:ro.twrp.sar=true
 
 on property:ro.crypto.fs_crypto_blkdev=*
     setprop crypto.ready 0
-    stop sbinqseecomd
-    stop sbinhwservicemanager
-    stop sbinservicemanager
-    stop sbinkeymaster-3-0
 
 service sbinqseecomd /sbin/qseecomd
     user root
@@ -44,26 +36,4 @@ service sbinqseecomd /sbin/qseecomd
     setenv LD_LIBRARY_PATH /vendor/lib:/sbin
     disabled
     oneshot
-    seclabel u:r:recovery:s0
-
-service sbinhwservicemanager /sbin/hwservicemanager
-    user root
-    group root
-    setenv LD_LIBRARY_PATH /vendor/lib:/sbin
-    disabled
-    onrestart setprop hwservicemanager.ready false
-    seclabel u:r:recovery:s0
-
-service sbinservicemanager /sbin/servicemanager
-    user root
-    group root
-    setenv LD_LIBRARY_PATH /vendor/lib:/sbin
-    disabled
-    seclabel u:r:recovery:s0
-
-service sbinkeymaster-3-0 /sbin/android.hardware.keymaster@3.0-service
-    user root
-    group root
-    setenv LD_LIBRARY_PATH /vendor/lib:/sbin
-    disabled
     seclabel u:r:recovery:s0
