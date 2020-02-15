@@ -1,8 +1,0 @@
-#!/sbin/sh
-#######################################################
-#
-# This ensures backwards compat for updater-scripts
-# which expects /sbin/busybox existence
-#
-#######################################################
-/sbin/toybox $@
