@@ -55,7 +55,7 @@ TARGET_PREBUILT_KERNEL := device/lge/hammerhead/prebuilt/zImage-dtb
 
 # TWRP Configuration
 TW_THEME := portrait_hdpi
-TW_DEVICE_VERSION := HH.S.4
+TW_DEVICE_VERSION := HH.S.5
 TW_EXCLUDE_SUPERSU := true
 TW_EXCLUDE_TWRPAPP := true
 TW_INCLUDE_NTFS_3G := true
