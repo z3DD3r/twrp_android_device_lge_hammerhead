@@ -1,8 +1,14 @@
 [
   {
-    "remote":"github",
+    "remote": "github",
     "repository": "TeamWin/android_device_qcom_common",
     "target_path": "device/qcom/common",
-    "revision":"android-9.0"
+    "revision": "android-9.0"
+  },
+  {
+    "remote": "github",
+    "repository": "z3DD3r/android_kernel_lge_hammerhead",
+    "target_path": "kernel/lge/hammerhead",
+    "revision": "lineage-16.0-twrp"
   }
 ]

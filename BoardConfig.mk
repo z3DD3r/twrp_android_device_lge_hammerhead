@@ -51,7 +51,8 @@ BOARD_KERNEL_IMAGE_NAME := zImage-dtb
 BOARD_KERNEL_PAGESIZE := 2048
 BOARD_MKBOOTIMG_ARGS := --ramdisk_offset 0x02900000 --tags_offset 0x02700000
 
-TARGET_PREBUILT_KERNEL := device/lge/hammerhead/prebuilt/zImage-dtb
+TARGET_KERNEL_CONFIG := lineageos_hammerhead_defconfig
+TARGET_KERNEL_SOURCE := kernel/lge/hammerhead
 
 # TWRP Configuration
 TW_THEME := portrait_hdpi
