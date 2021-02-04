@@ -9,6 +9,6 @@
     "remote": "github",
     "repository": "z3DD3r/android_kernel_lge_hammerhead",
     "target_path": "kernel/lge/hammerhead",
-    "revision": "lineage-16.0-twrp"
+    "revision": "lineage-18.1-twrp"
   }
 ]
