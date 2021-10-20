@@ -65,6 +65,40 @@ fi
 
 
 #
+# Functions used to work with partitions
+#
+partition_mounted() {
+mount | grep -q " $1 ";
+}
+
+partition_umount() {
+umount $1 >> /dev/null 2>&1 || umount -f $1 >> /dev/null 2>&1
+}
+
+partitions_umount() {
+local list="$*"
+
+local partition
+for partition in $list; do
+  partition_umount $partition
+done
+
+return 0
+}
+
+partitions_valid() {
+local list="$*"
+
+local partition
+for partition in $list; do
+  partition_mounted $partition && return 1
+done
+
+return 0
+}
+
+
+#
 # Function will modify size of partitions
 # /system partition will be increased to ~1444MB
 # /cache partition will be decreased to ~255MB
@@ -74,12 +108,15 @@ modify_partitions_size()
 echo " ";
 echo "Modifying partitions...";
 
-mkdir /tmp/backup
-dd if=/dev/block/mmcblk0p26 of=/tmp/backup/crypto.img
+partitions_umount /sdcard /data /cache /system
+partitions_valid /sdcard /data /cache /system
+if [ $? -ne 0 ]; then
+  echo "Error: Not all partitions unmounted!"
+  return 1
+fi
 
-umount /data
-umount /system
-umount /cache
+mkdir -p /tmp/backup
+dd if=/dev/block/mmcblk0p26 of=/tmp/backup/crypto.img
 
 parted /dev/block/mmcblk0 <<EOF
   rm 25
@@ -103,7 +140,7 @@ e2fsck -p -f /dev/block/mmcblk0p25
 e2fsck -p -f /dev/block/mmcblk0p27
 
 dd if=/tmp/backup/crypto.img of=/dev/block/mmcblk0p26
-rm /tmp/backup/crypto.img
+rm -rf /tmp/backup/
 
 echo "-- Finished --";
 reboot recovery
@@ -119,12 +156,15 @@ restore_partitions_size()
 echo " ";
 echo "Restoring partitions...";
 
-mkdir /tmp/backup
-dd if=/dev/block/mmcblk0p26 of=/tmp/backup/crypto.img
+partitions_umount /sdcard /data /cache /system
+partitions_valid /sdcard /data /cache /system
+if [ $? -ne 0 ]; then
+  echo "Error: Not all partitions unmounted!"
+  return 1
+fi
 
-umount /data
-umount /system
-umount /cache
+mkdir -p /tmp/backup
+dd if=/dev/block/mmcblk0p26 of=/tmp/backup/crypto.img
 
 parted /dev/block/mmcblk0 <<EOF
   rm 25
@@ -148,7 +188,7 @@ e2fsck -p -f /dev/block/mmcblk0p25
 e2fsck -p -f /dev/block/mmcblk0p27
 
 dd if=/tmp/backup/crypto.img of=/dev/block/mmcblk0p26
-rm /tmp/backup/crypto.img
+rm -rf /tmp/backup/
 
 echo "-- Finished --";
 reboot recovery
