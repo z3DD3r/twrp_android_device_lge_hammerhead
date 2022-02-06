@@ -3,6 +3,18 @@
 # Made for Hammerhead
 #
 
+PARTITION_SYSTEM_START=0
+PARTITION_SYSTEM_END=0
+PARTITION_VENDOR_START=0
+PARTITION_VENDOR_END=0
+PARTITION_CRYPTO_START=0
+PARTITION_CRYPTO_END=0
+PARTITION_CACHE_START=0
+PARTITION_CACHE_END=0
+PARTITION_USERDATA_START=0
+PARTITION_USERDATA_END=0
+PARTITION_GROW_START=0
+PARTITION_GROW_END=0
 
 #
 # Function will print usage instruction
@@ -41,7 +53,7 @@ return 0
 # Function will check current partitions
 # Returns 3 values:
 #    0 - Original partitions layout with 1.0Gb system
-#    1 - Modified partitions layout with 1.5Gb system
+#    1 - Modified partitions layout with 2.0Gb system
 #  255 - Unknown partitions layout. Modification SHOULD NOT be performed!
 #
 check_partitions_size()
@@ -49,12 +61,41 @@ check_partitions_size()
 echo "Checking size of partitions...";
 parted /dev/block/mmcblk0 unit b p quit -> /tmp/part
 
-if grep "1073741824B" /tmp/part > /dev/null
-then
+PARTITION_GROW_START=$(grep grow /tmp/part | tr -s ' ' | cut -d ' ' -f 2)
+PARTITION_GROW_END=$(grep grow /tmp/part | tr -s ' ' | cut -d ' ' -f 3)
+PARTITION_GROW_IDX=$(grep grow /tmp/part | tr -s ' ' | cut -d ' ' -f 1)
+
+if [[ "${PARTITION_GROW_START}" == "15757977600B" && "${PARTITION_GROW_END}" == "15757983231B" ]]; then
+  PARTITION_USERDATA_END=15757977599B
+elif [[ "${PARTITION_GROW_START}" == "31268513792B" && "${PARTITION_GROW_END}" == "31268519423B" ]]; then
+  PARTITION_USERDATA_END=31268513791B
+else
+  rm /tmp/part
+  return 255
+fi
+
+if [[ ${PARTITION_GROW_IDX} -eq 29 ]]; then
+  PARTITION_SYSTEM_START=192937984B
+  PARTITION_SYSTEM_END=2340421631B
+  PARTITION_VENDOR_START=2340421632B
+  PARTITION_VENDOR_END=2877292543B
+  PARTITION_CRYPTO_START=2877292544B
+  PARTITION_CRYPTO_END=2908749823B
+  PARTITION_CACHE_START=2908749824B
+  PARTITION_CACHE_END=3642753023B
+  PARTITION_USERDATA_START=3642753024B
   rm /tmp/part
   return 0
-elif grep "1536000512B" /tmp/part > /dev/null
-then
+elif [[ ${PARTITION_GROW_IDX} -eq 30 ]]; then
+  PARTITION_SYSTEM_START=192937984B
+  PARTITION_SYSTEM_END=1266679807B
+  PARTITION_VENDOR_START=0
+  PARTITION_VENDOR_END=0
+  PARTITION_CRYPTO_START=1266679808B
+  PARTITION_CRYPTO_END=1298137087B
+  PARTITION_CACHE_START=1298137088B
+  PARTITION_CACHE_END=2032140287B
+  PARTITION_USERDATA_START=2032140288B
   rm /tmp/part
   return 1
 else
@@ -62,7 +103,6 @@ else
   return 255
 fi
 }
-
 
 #
 # Functions used to work with partitions
@@ -100,8 +140,8 @@ return 0
 
 #
 # Function will modify size of partitions
-# /system partition will be increased to ~1444MB
-# /cache partition will be decreased to ~255MB
+# /system partition will be increased to 2.0Gb
+# /vendor partition will be added with 512Mb size
 #
 modify_partitions_size()
 {
@@ -117,29 +157,43 @@ fi
 
 mkdir -p /tmp/backup
 dd if=/dev/block/mmcblk0p26 of=/tmp/backup/crypto.img
+dd if=/dev/block/mmcblk0p29 of=/tmp/backup/grow.img
 
 parted /dev/block/mmcblk0 <<EOF
   rm 25
   rm 26
   rm 27
-  mkpart primary 192937984B 1728938495B
+  rm 28
+  rm 29
+  mkpart primary ${PARTITION_SYSTEM_START} ${PARTITION_SYSTEM_END}
   name 25 system
-  mkpart extended 1728938496B 1760395775B
-  name 26 crypto
-  mkpart primary 1760395776B 2032140287B
-  name 27 cache
+  mkpart primary ${PARTITION_VENDOR_START} ${PARTITION_VENDOR_END}
+  name 26 vendor
+  mkpart extended ${PARTITION_CRYPTO_START} ${PARTITION_CRYPTO_END}
+  name 27 crypto
+  mkpart primary ${PARTITION_CACHE_START} ${PARTITION_CACHE_END}
+  name 28 cache
+  mkpart primary ${PARTITION_USERDATA_START} ${PARTITION_USERDATA_END}
+  name 29 userdata
+  mkpart primary ${PARTITION_GROW_START} ${PARTITION_GROW_END}
+  name 30 grow
   quit
 EOF
 
 sleep 5
 
 yes | mke2fs -t ext4 /dev/block/mmcblk0p25
-yes | mke2fs -t ext4 /dev/block/mmcblk0p27
+yes | mke2fs -t ext4 /dev/block/mmcblk0p26
+yes | mke2fs -t ext4 /dev/block/mmcblk0p28
+yes | mke2fs -t ext4 /dev/block/mmcblk0p29
 
 e2fsck -p -f /dev/block/mmcblk0p25
-e2fsck -p -f /dev/block/mmcblk0p27
+e2fsck -p -f /dev/block/mmcblk0p26
+e2fsck -p -f /dev/block/mmcblk0p28
+e2fsck -p -f /dev/block/mmcblk0p29
 
-dd if=/tmp/backup/crypto.img of=/dev/block/mmcblk0p26
+dd if=/tmp/backup/crypto.img of=/dev/block/mmcblk0p27
+dd if=/tmp/backup/grow.img of=/dev/block/mmcblk0p30
 rm -rf /tmp/backup/
 
 echo "-- Finished --";
@@ -156,26 +210,34 @@ restore_partitions_size()
 echo " ";
 echo "Restoring partitions...";
 
-partitions_umount /sdcard /data /cache /system
-partitions_valid /sdcard /data /cache /system
+partitions_umount /sdcard /data /cache /system /vendor
+partitions_valid /sdcard /data /cache /system /vendor
 if [ $? -ne 0 ]; then
   echo "Error: Not all partitions unmounted!"
   return 1
 fi
 
 mkdir -p /tmp/backup
-dd if=/dev/block/mmcblk0p26 of=/tmp/backup/crypto.img
+dd if=/dev/block/mmcblk0p27 of=/tmp/backup/crypto.img
+dd if=/dev/block/mmcblk0p30 of=/tmp/backup/grow.img
 
 parted /dev/block/mmcblk0 <<EOF
   rm 25
   rm 26
   rm 27
-  mkpart primary 192937984B 1266679807B
+  rm 28
+  rm 29
+  rm 30
+  mkpart primary ${PARTITION_SYSTEM_START} ${PARTITION_SYSTEM_END}
   name 25 system
-  mkpart extended 1266679808B 1298137087B
+  mkpart extended ${PARTITION_CRYPTO_START} ${PARTITION_CRYPTO_END}
   name 26 crypto
-  mkpart primary 1298137088B 2032140287B
+  mkpart primary ${PARTITION_CACHE_START} ${PARTITION_CACHE_END}
   name 27 cache
+  mkpart primary ${PARTITION_USERDATA_START} ${PARTITION_USERDATA_END}
+  name 28 userdata
+  mkpart primary ${PARTITION_GROW_START} ${PARTITION_GROW_END}
+  name 29 grow
   quit
 EOF
 
@@ -183,11 +245,14 @@ sleep 5
 
 yes | mke2fs -t ext4 /dev/block/mmcblk0p25
 yes | mke2fs -t ext4 /dev/block/mmcblk0p27
+yes | mke2fs -t ext4 /dev/block/mmcblk0p28
 
 e2fsck -p -f /dev/block/mmcblk0p25
 e2fsck -p -f /dev/block/mmcblk0p27
+e2fsck -p -f /dev/block/mmcblk0p28
 
 dd if=/tmp/backup/crypto.img of=/dev/block/mmcblk0p26
+dd if=/tmp/backup/grow.img of=/dev/block/mmcblk0p29
 rm -rf /tmp/backup/
 
 echo "-- Finished --";
