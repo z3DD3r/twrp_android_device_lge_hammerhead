@@ -56,7 +56,7 @@ TARGET_KERNEL_SOURCE := kernel/lge/hammerhead
 
 # TWRP Configuration
 TW_THEME := portrait_hdpi
-TW_DEVICE_VERSION := HH.S.16
+TW_DEVICE_VERSION := HH.S.17
 TW_EXCLUDE_BASH := true
 TW_EXCLUDE_NANO := false
 TW_EXCLUDE_SUPERSU := true
